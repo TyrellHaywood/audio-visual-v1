@@ -1,11 +1,20 @@
 let audioContext;
 let analyser;
 let stream;
-let volume = 0; // volume value to control the circle's size
 let dataArray;
-let audioSelect; // dropdown for audio input selection
+let audioSelect;
+let smoothVolume = 0;
 
+// perlin noise configuration
+let xScale = 0.015;
+let yScale = 0.02;
+let gapSlider;
+let gap;
+let offsetSlider;
+let offset;
+let timeOffset = 0;
 
+// note frequencies
 const NOTES = {
     'B0': 30.87,
     'C1': 32.70,
@@ -36,87 +45,118 @@ const NOTES = {
 };
 
 async function setupAudio(deviceId = null) {
-  try {
-    // request access to the selected audio input device
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        deviceId: deviceId ? { exact: deviceId } : undefined,
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      },
-    });
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                deviceId: deviceId ? { exact: deviceId } : undefined,
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+            },
+        });
 
-    // create the audio context and connect the stream
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioContext.createMediaStreamSource(stream);
-
-    // create an analyser node
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256; // small FFT size to focus on amplitude
-    dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-    // connect the source to the analyser
-    source.connect(analyser);
-  } catch (err) {
-    console.error("Error accessing audio interface:", err);
-  }
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+        source.connect(analyser);
+    } catch (err) {
+        console.error("Error accessing audio interface:", err);
+    }
 }
 
 async function populateAudioInputs() {
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  const audioInputs = devices.filter((device) => device.kind === "audioinput");
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const audioInputs = devices.filter((device) => device.kind === "audioinput");
 
-  audioSelect = createSelect();
-  audioSelect.position(10, 10);
-  audioInputs.forEach((input) => {
-    audioSelect.option(input.label, input.deviceId);
-  });
+    audioSelect = createSelect();
+    audioSelect.position(10, 10);
+    audioInputs.forEach((input) => {
+        audioSelect.option(input.label, input.deviceId);
+    });
 
-  audioSelect.changed(() => {
-    const selectedDeviceId = audioSelect.value();
-    if (audioContext) {
-      audioContext.close(); // close the previous context
-    }
-    setupAudio(selectedDeviceId); // reinitialize with the selected input
-  });
+    audioSelect.changed(() => {
+        const selectedDeviceId = audioSelect.value();
+        if (audioContext) {
+            audioContext.close();
+        }
+        setupAudio(selectedDeviceId);
+    });
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  noStroke();
-  populateAudioInputs();
-  setupAudio();
+    createCanvas(windowWidth, windowHeight);
+    noStroke();
+    
+    // create UI controls
+    gapSlider = createSlider(2, width / 10, width / 20);
+    gapSlider.position(10, 40);
+    offsetSlider = createSlider(0, 1000, 0);
+    offsetSlider.position(10, 70);
+    
+    
+    populateAudioInputs();
+    setupAudio();
 }
 
-let smoothVolume = 0;
-let targetCircleSize = 0;
-let currentCircleSize = 0;
-
 function draw() {
-  background(0);
-
-  if (analyser) {
-    analyser.getByteTimeDomainData(dataArray);
-
-    // Calculate current volume
-    let sum = 0;
-    for (let i = 0; i < dataArray.length; i++) {
-      sum += Math.abs(dataArray[i] - 128);
+    background(0);
+    
+    if (analyser) {
+        // get audio data
+        analyser.getByteTimeDomainData(dataArray);
+        
+        // calculate current volume
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+            sum += Math.abs(dataArray[i] - 128);
+        }
+        let currentVolume = sum / dataArray.length;
+        
+        // smooth the volume
+        smoothVolume = lerp(smoothVolume, currentVolume, 0.1);
+        
+        // use smoothVolume to influence the visualization
+        drawPerlinGrid(smoothVolume);
     }
-    let currentVolume = sum / dataArray.length;
+    
+    timeOffset += 0.01; // animate the noise pattern over time
+}
 
-    // smooth the volume with averaging
-    smoothVolume = (smoothVolume * 0.9) + (currentVolume * 0.1);
+function drawPerlinGrid(volume) {
+    // get current values from sliders
+    gap = gapSlider.value();
+    offset = offsetSlider.value();
+    
+    // map volume to influence the visualization
+    let volumeScale = map(volume, 0, 128, 0.5, 2);
+    let colorIntensity = map(volume, 0, 128, 50, 255);
+    
+    // loop through the grid
+    for (let x = gap / 2; x < width; x += gap) {
+        for (let y = gap / 2; y < height; y += gap) {
+            // calculate noise value with time animation and volume influence
+            let noiseValue = noise(
+                (x + offset) * xScale * volumeScale,
+                (y + offset) * yScale * volumeScale,
+                timeOffset
+            );
+            
+            // calculate circle size based on noise and volume
+            let diameter = noiseValue * gap * volumeScale;
+            
+            // set color based on noise value and volume
+            let hue = map(noiseValue, 0, 1, 0, 360);
+            colorMode(HSB);
+            fill(hue, colorIntensity, colorIntensity);
+            
+            // draw the circle
+            circle(x, y, diameter);
+        }
+    }
+}
 
-    // map the smoothed volume to a target size
-    targetCircleSize = map(smoothVolume, 0, 128, 50, width / 2);
-
-    // smoothly transition to the target size
-    currentCircleSize = lerp(currentCircleSize, targetCircleSize, 0.1);
-
-    // draw the circle
-    fill(255, 100, 100);
-    ellipse(width / 2, height / 2, currentCircleSize);
-  }
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
 }
