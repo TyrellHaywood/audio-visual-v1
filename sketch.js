@@ -147,7 +147,7 @@ function drawPerlinGrid(volume) {
             let diameter = noiseValue * gap * volumeScale;
             
             // set color based on noise value and volume
-            let hue = map(noiseValue, 0, 1, 0, 360);
+            let hue = map(noiseValue, 0, 1, 0, 360); // color value range (0-360 is full inclusive)
             colorMode(HSB);
             fill(hue, colorIntensity, colorIntensity);
             
