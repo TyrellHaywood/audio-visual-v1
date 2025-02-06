@@ -1,7 +1,7 @@
 
 # Audio -> Visuals V1
 
-![Perlin Noise AV](/images/perlinNoiseAVPrototypeG.gif)
+![Perlin Noise AV](/images/PerlinNoiseAVPrototypeG.gif)
 
 ### About:
 
