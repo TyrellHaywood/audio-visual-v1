@@ -14,8 +14,8 @@ const PerlinNoiseAV = () => {
     let smoothVolume = 0;
 
     // Perlin noise configuration
-    let xScale = 0.015;
-    let yScale = 0.02;
+    const xScale = 0.015;
+    const yScale = 0.02;
     let gap: number;
     let offset: number;
     let timeOffset = 0;
@@ -96,7 +96,7 @@ const PerlinNoiseAV = () => {
           for (let i = 0; i < dataArray.length; i++) {
             sum += Math.abs(dataArray[i] - 128);
           }
-          let currentVolume = sum / dataArray.length;
+          const currentVolume = sum / dataArray.length;
           smoothVolume = p.lerp(smoothVolume, currentVolume, 0.1);
 
           drawPerlinGrid(p, smoothVolume);
@@ -108,18 +108,18 @@ const PerlinNoiseAV = () => {
         gap = (gapSlider as p5.Element).value() as number;
         offset = (offsetSlider as p5.Element).value() as number;
 
-        let volumeScale = p.map(volume, 0, 128, 0.5, 2);
-        let colorIntensity = p.map(volume, 0, 128, 50, 255);
+        const volumeScale = p.map(volume, 0, 128, 0.5, 2);
+        const colorIntensity = p.map(volume, 0, 128, 50, 255);
 
         for (let x = gap / 2; x < p.width; x += gap) {
           for (let y = gap / 2; y < p.height; y += gap) {
-            let noiseValue = p.noise(
+            const noiseValue = p.noise(
               (x + offset) * xScale * volumeScale,
               (y + offset) * yScale * volumeScale,
               timeOffset
             );
-            let diameter = noiseValue * gap * volumeScale;
-            let hue = p.map(noiseValue, 0, 1, 0, 360);
+            const diameter = noiseValue * gap * volumeScale;
+            const hue = p.map(noiseValue, 0, 1, 0, 360);
 
             p.colorMode(p.HSB);
             p.fill(hue, colorIntensity, colorIntensity);
