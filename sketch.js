@@ -14,36 +14,6 @@ let offsetSlider;
 let offset;
 let timeOffset = 0;
 
-// note frequencies
-const NOTES = {
-    'B0': 30.87,
-    'C1': 32.70,
-    'C#1': 34.65,
-    'D1': 36.71,
-    'D#1': 38.89,
-    'E1': 41.20,
-    'F1': 43.65,
-    'F#1': 46.25,
-    'G1': 49.00,
-    'G#1': 51.91,
-    'A1': 55.00,
-    'A#1': 58.27,
-    'B1': 61.74,
-    'C2': 65.41,
-    'C#2': 69.30,
-    'D2': 73.42,
-    'D#2': 77.78,
-    'E2': 82.41,
-    'F2': 87.31,
-    'F#2': 92.50,
-    'G2': 98.00,
-    'G#2': 103.83,
-    'A2': 110.00,
-    'A#2': 116.54,
-    'B2': 123.47,
-    'C3': 130.81
-};
-
 async function setupAudio(deviceId = null) {
     try {
         stream = await navigator.mediaDevices.getUserMedia({
